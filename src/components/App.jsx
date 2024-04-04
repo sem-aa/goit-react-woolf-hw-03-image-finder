@@ -12,11 +12,14 @@ class App extends Component {
     page: 1,
     selectedImage: '',
     loading: false,
+    totalPages: null,
   };
 
-  componentDidMount() {
+  componentDidUpdate(prevProps, prevState) {
     const { search, page } = this.state;
-    this.fetchImages(search, page);
+    if (prevState.search !== search || prevState.page !== page) {
+      this.fetchImages(search, page);
+    }
   }
 
   fetchImages = (query, page) => {
@@ -25,6 +28,7 @@ class App extends Component {
       .then(data => {
         this.setState(prevState => ({
           images: [...prevState.images, ...data.hits],
+          totalPages: Math.ceil(data.total / 12),
         }));
       })
       .catch(error => console.error(error))
@@ -34,20 +38,11 @@ class App extends Component {
   };
 
   onSubmit = query => {
-    this.setState({ images: [], search: query, page: 1 }, () => {
-      const { search, page } = this.state;
-      this.fetchImages(search, page);
-    });
+    this.setState({ images: [], search: query, page: 1 });
   };
 
   loadMore = () => {
-    this.setState(
-      prevState => ({ page: prevState.page + 1 }),
-      () => {
-        const { search, page } = this.state;
-        this.fetchImages(search, page);
-      }
-    );
+    this.setState(prevState => ({ page: prevState.page + 1 }));
   };
 
   handleImageClick = imageURL => {
@@ -59,14 +54,16 @@ class App extends Component {
   };
 
   render() {
-    const { images, selectedImage, loading } = this.state;
+    const { images, selectedImage, loading, totalPages, page } = this.state;
 
     return (
       <div className="App">
         <Searchbar onSubmit={this.onSubmit} />
         <ImageGallery images={images} onSelectImg={this.handleImageClick} />
         {loading && <span className="loader"></span>}
-        {images.length > 0 && <Button loadMore={this.loadMore} />}
+        {images.length > 0 && totalPages !== page && (
+          <Button loadMore={this.loadMore} />
+        )}
         {selectedImage && (
           <Modal srcImg={selectedImage} closeModal={this.closeModal} />
         )}
